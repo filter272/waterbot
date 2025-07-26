@@ -8,6 +8,7 @@
         body { font-family: Arial; padding: 15px; }
         input, button { width: 100%; padding: 10px; margin: 5px 0; }
         button { background: #0088cc; color: white; border: none; }
+        #status { color: red; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -16,55 +17,67 @@
     <input type="number" id="apartment" placeholder="Номер квартиры" min="1" max="87" required>
     <input type="number" id="cold" step="0.001" placeholder="Холодная вода (м³)" min="0" required>
     <input type="number" id="hot" step="0.001" placeholder="Горячая вода (м³)" min="0" required>
-    <input type="text" id="lastname" placeholder="Фамилия (необязательно)">
     
     <button onclick="sendData()">Отправить</button>
     <div id="status"></div>
 
     <script>
+        // Инициализация WebApp
         Telegram.WebApp.expand();
+        Telegram.WebApp.enableClosingConfirmation();
         
+        // Функция отправки (с тройной проверкой)
         async function sendData() {
             const data = {
                 apartment: document.getElementById('apartment').value,
                 cold: document.getElementById('cold').value,
-                hot: document.getElementById('hot').value,
-                lastname: document.getElementById('lastname').value || ''
+                hot: document.getElementById('hot').value
             };
             
             // Валидация
             if (!data.apartment || !data.cold || !data.hot) {
-                Telegram.WebApp.showAlert("Заполните все обязательные поля!");
+                showStatus("❌ Заполните все поля!", true);
                 return;
             }
-
-            document.getElementById('status').textContent = "Отправка данных...";
+            
+            showStatus("⌛ Отправка...");
             
             try {
-                // 1. Отправка через Telegram WebApp
+                // 1. Основной способ - через Telegram API
                 Telegram.WebApp.sendData(JSON.stringify(data));
                 
-                // 2. Дублирующая отправка напрямую на GAS
-                const GAS_URL = 'https://script.google.com/macros/s/AKfycbzo3kf2xn9178YEIKfOUDnOQupAFSYKVAzfO4p5de6STOl_S3mqH68nh1qpyoD86SSP/exec';
+                // 2. Резервный способ - прямой fetch
+                const GAS_URL = 'Вhttps://script.google.com/macros/s/AKfycbyUee2V7iF65yaVbqgrPRDCfwA7yrb_W1fiS7Q8mPpcAA7qG3IoVoozmhHk1s7Mw1rz/exec';
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
                 
+                // 3. Проверка ответа
+                if (!response.ok) throw new Error("Ошибка сервера");
+                
                 const result = await response.json();
-                document.getElementById('status').textContent = 
-                    result.status === "success" 
+                showStatus(result.status === "success" 
                     ? "✅ Данные сохранены" 
-                    : "❌ Ошибка: " + (result.message || "");
+                    : "❌ Ошибка: " + result.message);
                 
                 Telegram.WebApp.close();
                 
             } catch (e) {
-                document.getElementById('status').textContent = "🚫 Ошибка сети";
+                showStatus("🚫 Ошибка сети: " + e.message, true);
                 console.error("Ошибка:", e);
             }
         }
+        
+        function showStatus(text, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = text;
+            status.style.color = isError ? "red" : "green";
+        }
+    </script>
+</body>
+</html>
     </script>
 </body>
 </html>
