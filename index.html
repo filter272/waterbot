@@ -1,47 +1,70 @@
-<script>
-  Telegram.WebApp.expand();
-  
-  async function sendData() {
-    const data = {
-      apartment: document.getElementById('apartment').value,
-      cold: document.getElementById('cold').value,
-      hot: document.getElementById('hot').value,
-      lastname: document.getElementById('lastname').value || ''
-    };
-
-    // Тестовый вывод в консоль
-    console.log("Отправляемые данные:", data);
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Показания воды</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: Arial; padding: 15px; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; }
+        button { background: #0088cc; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <h2>📊 Показания воды</h2>
     
-    try {
-      const GAS_URL = 'https://script.google.com/macros/s/AKfycbw9s6CIceHhSepbnD6h47jbcIFmUafZAjeMGI5X_4JApHj3Jhe4ldoqU7HnpF2YR6k7/exec';
-      
-      // 1. Попытка прямого запроса
-      let response = await fetch(GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      
-      // 2. Если не сработало - пробуем через прокси
-      if (!response.ok) {
-        const PROXY_URL = `https://cors-anywhere.herokuapp.com/${GAS_URL}`;
-        response = await fetch(PROXY_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-      }
-      
-      const result = await response.json();
-      console.log("Ответ сервера:", result);
-      
-      Telegram.WebApp.showAlert(result.status === "success" 
-        ? "✅ Данные сохранены!" 
-        : "❌ Ошибка: " + result.message);
+    <input type="number" id="apartment" placeholder="Номер квартиры" min="1" max="87" required>
+    <input type="number" id="cold" step="0.001" placeholder="Холодная вода (м³)" min="0" required>
+    <input type="number" id="hot" step="0.001" placeholder="Горячая вода (м³)" min="0" required>
+    <input type="text" id="lastname" placeholder="Фамилия (необязательно)">
+    
+    <button onclick="sendData()">Отправить</button>
+    <div id="status"></div>
+
+    <script>
+        Telegram.WebApp.expand();
         
-    } catch (e) {
-      console.error("Ошибка:", e);
-      Telegram.WebApp.showAlert("🚫 Сетевая ошибка: " + e.message);
-    }
-  }
-</script>
+        async function sendData() {
+            const data = {
+                apartment: document.getElementById('apartment').value,
+                cold: document.getElementById('cold').value,
+                hot: document.getElementById('hot').value,
+                lastname: document.getElementById('lastname').value || ''
+            };
+            
+            // Валидация
+            if (!data.apartment || !data.cold || !data.hot) {
+                Telegram.WebApp.showAlert("Заполните все обязательные поля!");
+                return;
+            }
+
+            document.getElementById('status').textContent = "Отправка данных...";
+            
+            try {
+                // 1. Отправка через Telegram WebApp
+                Telegram.WebApp.sendData(JSON.stringify(data));
+                
+                // 2. Дублирующая отправка напрямую на GAS
+                const GAS_URL = 'https://script.google.com/macros/s/AKfycbzo3kf2xn9178YEIKfOUDnOQupAFSYKVAzfO4p5de6STOl_S3mqH68nh1qpyoD86SSP/exec';
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                document.getElementById('status').textContent = 
+                    result.status === "success" 
+                    ? "✅ Данные сохранены" 
+                    : "❌ Ошибка: " + (result.message || "");
+                
+                Telegram.WebApp.close();
+                
+            } catch (e) {
+                document.getElementById('status').textContent = "🚫 Ошибка сети";
+                console.error("Ошибка:", e);
+            }
+        }
+    </script>
+</body>
+</html>
