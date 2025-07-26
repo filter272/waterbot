@@ -100,7 +100,7 @@
         Telegram.WebApp.sendData(JSON.stringify(data));
         
         // 2. Отправка напрямую на GAS
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxgau7d4DYmvysnrHCW8rPWmbFnACMkw3U9v7sPL6GXweqkun4hqTAot7RuKqDnXXrE/exec';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxllo7YWH_H-o9BM-k2Hvw3dW9Y6gO0XxA2Pbzm3D9lZQD8caffXOBfGpgpKz_GzjS-/exec';
         const response = await fetch(GAS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
