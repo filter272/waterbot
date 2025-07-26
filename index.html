@@ -125,12 +125,41 @@
         }
         
         // Обработчик отправки данных
-        async function submitData() {
-            const apartment = document.getElementById('apartment').value;
-            const cold = document.getElementById('cold').value;
-            const hot = document.getElementById('hot').value;
-            const lastname = document.getElementById('lastname').value;
-            const errorElement = document.getElementById('error');
+       async function submitData() {
+  const data = {
+    apartment: document.getElementById('apartment').value,
+    cold: document.getElementById('cold').value,
+    hot: document.getElementById('hot').value,
+    lastname: document.getElementById('lastname').value || ''
+  };
+
+  try {
+    // Показываем индикатор загрузки
+    Telegram.WebApp.MainButton.showProgress();
+    
+    const response = await fetch('ВАШ_GAS_URL', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    
+    if (result.status !== "success") {
+      throw new Error(result.message || "Ошибка сервера");
+    }
+    
+    Telegram.WebApp.showAlert("✅ Данные сохранены!", () => {
+      Telegram.WebApp.close();
+    });
+    
+  } catch (error) {
+    console.error("Ошибка отправки:", error);
+    Telegram.WebApp.showAlert(`❌ Ошибка: ${error.message}`);
+  } finally {
+    Telegram.WebApp.MainButton.hideProgress();
+  }
+}
             
             // Сброс предыдущих ошибок
             errorElement.textContent = '';
